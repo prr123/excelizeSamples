@@ -4,7 +4,7 @@ https://github.com/qax-os/excelize
 
 ## testExcel  
 
-Simply copies the example given in the README file. The purpose is testint the example to see whether it compiles and executes.  
+Simply copies the example given in the README file. The purpose is testing the example code to see whether it compiles and executes.  
 
 ## creExcelWkb
 
