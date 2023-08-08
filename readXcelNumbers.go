@@ -88,9 +88,9 @@ func main() {
 
 //	os.Exit(1)
 
-	colEnd := int('I') - 64
+	colEnd := int('N') - 64
 
-	for irow :=2; irow< 4; irow++ {
+	for irow :=3; irow< 4; irow++ {
 		cellRowStr := fmt.Sprintf("%d",irow)
 		for icol :=2; icol<colEnd; icol++ {
 			cellColStr := string(icol+64)
