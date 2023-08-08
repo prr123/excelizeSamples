@@ -14,6 +14,7 @@ import (
 	"os"
 	"log"
 	"strconv"
+	"bytes"
 	"math"
 
     util "github.com/prr123/utility/utilLib"
@@ -99,7 +100,7 @@ func main() {
     		cellStr, err := xlsfil.GetCellValue(sheet1, cellAdrStr)
 			if err != nil {log.Fatalf("error -- getcellvalue: %v\n", err)}
     		fmt.Printf("cell[%d,%d]: %s\n", irow, icol, cellStr)
-			cellval, err := parseCellStr(cellStr)
+			cellval, err := ParseCellStr(cellStr)
 			if err != nil {fmt.Printf("cell parse error: %v\n",err)}
 			PrintCell(cellval)
 		}
@@ -108,10 +109,87 @@ func main() {
 
 }
 
-func parseCellStr(str string)(val interface{}, err error) {
+func ParseCellStr(str string)(val interface{}, err error) {
 	fmt.Printf("*** parseCell: %s ***\n", str)
 	l := len(str)
+	endStr := l-1
+	byt := []byte(str)
 
+	if l ==0 {
+		val = str
+		return val, nil
+	}
+
+	if l ==1 {
+		if util.IsNumeric(byt[0]) {
+			val = int(byt[0]) - 47
+			return val, nil
+		} else {
+			val = str
+			return val, nil
+		}
+	}
+
+	// first check for chars
+	// test the first and the last char
+	percent := false
+	if byt[endStr] == '%' {
+		percent = true
+		endStr += -1
+	}
+
+	firstNum := false
+
+	if util.IsNumeric(byt[0]) {
+		firstNum = true
+	} else {
+		if (byt[0] == '-') && util.IsNumeric(byt[1]) {firstNum = true}
+	}
+
+	num := false
+	if firstNum && util.IsNumeric(byt[endStr]) {num = true}
+
+	if !num {
+		val = str
+		return val, nil
+	}
+
+	// we have a number
+	// check for float
+	floatNum := false
+
+	// replace European with US notation
+	idx := bytes.IndexByte(byt, ',')
+	if idx>0 {byt[idx] = '.'}
+
+	idx = bytes.IndexByte(byt, '.')
+	if idx>0 {floatNum = true}
+
+	// check for exp notation
+	numExpPos := bytes.IndexAny(byt,"eE")
+	if numExpPos> 0 {floatNum = true}
+
+	// int
+	if !floatNum && !percent {
+		valInt, err := strconv.Atoi(str)
+		if err != nil {
+			val = str
+			return val, nil
+		}
+		val = valInt
+		return val, nil
+	}
+
+	// float
+	valFloat, err := strconv.ParseFloat(string(byt[:endStr+1]), 64)
+	if err != nil {
+		val = str
+		return val, nil
+	}
+
+	if percent {valFloat = valFloat/100.0}
+	val = valFloat
+	return val, nil
 }
 
 func parseCellStrOld(str string)(val interface{}, err error) {
