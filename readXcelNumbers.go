@@ -166,8 +166,29 @@ func ParseCellStr(str string)(val interface{}, err error) {
 	if idx>0 {floatNum = true}
 
 	// check for exp notation
-	numExpPos := bytes.IndexAny(byt,"eE")
-	if numExpPos> 0 {floatNum = true}
+	expPos := bytes.IndexAny(byt,"eE")
+	if expPos> 0 {
+		if percent {
+            val = str
+            return val, fmt.Errorf("impossible percent & exponential")
+		}
+		baseStr := str[0:expPos]
+		baseVal, err := strconv.ParseFloat(baseStr, 64)
+		if err != nil {
+            val = str
+            return val, fmt.Errorf("strconv base: %v", err)
+		}
+
+		expStr := str[(expPos + 1):]
+		expVal, err := strconv.ParseInt(expStr, 10, 64)
+		if err != nil {
+            val = str
+            return val, fmt.Errorf("strconv exp: %v", err)
+		}
+
+		val = baseVal * math.Pow10(int(expVal))
+		return val, nil
+	}
 
 	// int
 	if !floatNum && !percent {
