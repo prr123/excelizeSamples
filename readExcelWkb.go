@@ -4,6 +4,7 @@ import (
     "fmt"
 	"os"
 	"log"
+	"strconv"
 
     util "github.com/prr123/utility/utilLib"
     "github.com/xuri/excelize/v2"
@@ -13,6 +14,7 @@ func main() {
 
     numarg := len(os.Args)
     dbg := false
+	dbgLev := 0
     flags:=[]string{"dbg","excel"}
 
     // default file
@@ -36,8 +38,17 @@ func main() {
     flagMap, err := util.ParseFlags(os.Args, flags)
     if err != nil {log.Fatalf("util.ParseFlags: %v\n", err)}
 
-    _, ok := flagMap["dbg"]
-    if ok {dbg = true}
+    dbgval, ok := flagMap["dbg"]
+    if ok {
+		dbg = true
+		if dbgval.(string) != "none" {
+			dbgLev, err = strconv.Atoi(dbgval.(string))
+			if err != nil {
+				log.Printf("error -- dbg level: %v\n", err)
+				dbgLev = 0
+			}
+		}
+	}
     if dbg {
         fmt.Printf("dbg -- flag list:\n")
         for k, v :=range flagMap {
@@ -54,7 +65,7 @@ func main() {
 //        if dbg {log.Printf("excel file: %s\n", xlsFilnam)}
     }
 
-    log.Printf("debug: %t\n", dbg)
+    log.Printf("debug: %t debug level: %d\n", dbg, dbgLev)
     log.Printf("Using excel file: %s\n", xlsFilnam)
 
     xlsfil, err := excelize.OpenFile(xlsFilnam)
@@ -63,39 +74,51 @@ func main() {
 
 	// list all sheets
 	sheetList := xlsfil.GetSheetList()
-	for i:=0; i< len(sheetList); i++ {
-		fmt.Printf("  sheet[%d]: %s\n", i+1,sheetList[i]) 
-	}
-
 	sheet1 := sheetList[0]
-    // Get value from cell by given worksheet name and cell reference.
-    cell, err := xlsfil.GetCellValue(sheet1, "A1")
-    if err != nil {log.Fatalf("error -- getcellvalue: %v\n", err)}
-    fmt.Printf("printing cell A1: %s\n", cell)
-
+	if dbgLev > 0 {
+		fmt.Println("*********** sheets *************")
+		for i:=0; i< len(sheetList); i++ {
+			fmt.Printf("  sheet[%d]: %s\n", i+1,sheetList[i]) 
+		}
+		fmt.Println("**** testin cell A1 *****")
+    	// Get value from cell by given worksheet name and cell reference.
+    	cell, err := xlsfil.GetCellValue(sheet1, "A1")
+    	if err != nil {log.Fatalf("error -- getcellvalue: %v\n", err)}
+    	fmt.Printf("cell A1: %s\n", cell)
+	}
 
     // Get all the rows in the Sheet1.
 	// prr How do we know which rows these are?
     rows, err := xlsfil.GetRows(sheet1)
     if err != nil {log.Fatalf("error -- get rows: %v\n", err)}
-	fmt.Printf("rows: %v\n", rows)
+
+	if dbgLev> 0 {
+		fmt.Println("************** display rows for sheet 1 *******")
+		fmt.Printf("rows: %v\n", rows)
+	}
 
 	rowNum := 0
     for _, row := range rows {
 		rowNum ++
-		fmt.Printf("  row[%d]: %v|\t",rowNum, row)
-        for _, colCell := range row {
-            fmt.Printf("%v \t",colCell)
-        }
-        fmt.Println()
+		if dbgLev> 0 {
+			fmt.Printf("  row[%d]:|\t",rowNum)
+        	for _, colCell := range row {
+            	fmt.Printf("%v \t",colCell)
+        	}
+        	fmt.Println()
+		}
     }
 
 	// testing cell types
-	valStr, err := xlsfil.GetCellValue(sheet1,"B3")
-	if err !=nil {log.Printf("error getcellvalue B3: %v\n", err)}
-	fmt.Printf("cell value B3: %s\n",valStr)
-	celltyp, err := xlsfil.GetCellType(sheet1,"B3")
-	if err !=nil {log.Printf("error getcelltype B3: %v\n", err)}
-	fmt.Printf("cell type B3: %v\n",celltyp)
-
+	if dbgLev > 1 {
+		fmt.Printf(" **** testing row 3 ***** ")
+		for icol:=1; icol< 14; icol ++ {
+			cellAdr := string(icol+64) + "3"
+			cellVal, err := xlsfil.GetCellValue(sheet1,cellAdr)
+			if err !=nil {log.Printf("error getcellvalue %s: %v\n", cellAdr, err)}
+			cellTyp, err := xlsfil.GetCellType(sheet1,cellAdr)
+			if err !=nil {log.Printf("error getcelltype %s: %v\n", cellAdr, err)}
+			fmt.Printf("cell[%s]: %-15s| %d\n",cellAdr, cellVal, cellTyp)
+		}
+	}
 }
